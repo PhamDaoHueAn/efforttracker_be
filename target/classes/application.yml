@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://ep-flat-shape-a1bzgetx-pooler.ap-southeast-1.aws.neon.tech:5432/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_w62auoJyHcPZ
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: "mysecretkey1234567890mysecretkey1234567890"
+    expiration: 3600000
