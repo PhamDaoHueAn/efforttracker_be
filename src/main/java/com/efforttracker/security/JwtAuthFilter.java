@@ -38,24 +38,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
+        final String jwt = authHeader.substring(7);
+
+        String userId;
         try {
-            username = jwtService.extractUsername(jwt);
+            // Lấy userId từ JWT thay vì username/email
+            userId = jwtService.extractUserId(jwt);
         } catch (Exception ex) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+        // Nếu có userId và chưa có authentication trong context
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userId);
 
             try {
                 if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
@@ -74,7 +75,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Token không hợp lệ -> bỏ qua
             }
         }
+
         filterChain.doFilter(request, response);
     }
-
 }

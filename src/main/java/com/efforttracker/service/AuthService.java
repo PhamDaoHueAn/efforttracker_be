@@ -21,7 +21,7 @@ public class AuthService {
 
     public void register(AuthDtos.RegisterRequest req) {
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw new IllegalArgumentException("Email đã tồn tại");
         }
 
         String role = (req.getRole() != null && !req.getRole().isBlank())
@@ -33,7 +33,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .firstName(req.getFirstName())
                 .lastName(req.getLastName())
-                .role(role)   // gán role ở đây
+                .role(role)
                 .hourlyRate(BigDecimal.ZERO)
                 .build();
 
@@ -42,19 +42,18 @@ public class AuthService {
 
     public AuthDtos.LoginResponse login(AuthDtos.LoginRequest req) {
         User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new IllegalArgumentException("Sai mật khẩu");
         }
 
-        // ✅ Generate JWT bằng JwtService
-        String token = jwtService.generateToken(user.getEmail());
+        String token = jwtService.generateToken(user.getId(), user.getRole());
 
         return new AuthDtos.LoginResponse(
                 token,
                 "Bearer",
-                3600, // seconds, hoặc lấy từ config
+                3600, // giây
                 toUserResponse(user)
         );
     }

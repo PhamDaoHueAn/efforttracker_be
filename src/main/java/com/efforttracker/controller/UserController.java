@@ -20,8 +20,9 @@ public class UserController {
 
     private final UserService userService;
 
-    // Lấy danh sách tất cả user (tất cả user đã đăng nhập đều xem được)
+    // Lấy danh sách tất cả user (chỉ ADMIN mới được xem)
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDtos.UserResponse>> getAll() {
         List<UserDtos.UserResponse> list = userService.getAll()
                 .stream()
@@ -31,28 +32,31 @@ public class UserController {
     }
 
     // Lấy user theo ID
+    // ADMIN có thể xem bất kỳ, USER chỉ được xem chính mình
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
     public ResponseEntity<UserDtos.UserResponse> getById(
             @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable String id) {
+            @PathVariable("id") String id) {
         return ResponseEntity.ok(toResponse(userService.getById(id)));
     }
 
     // Tạo mới user (chỉ admin)
     @PostMapping
-
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDtos.UserResponse> create(
             @RequestBody @Valid UserDtos.CreateUserRequest req) {
         User user = userService.create(req);
         return ResponseEntity.ok(toResponse(user));
     }
 
-    // Cập nhật user theo ID (chỉ admin)
+    // Cập nhật user theo ID
+    // ADMIN cập nhật bất kỳ, USER chỉ được cập nhật chính mình
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
     public ResponseEntity<UserDtos.UserResponse> update(
             @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable String id,
+            @PathVariable("id") String id,
             @RequestBody @Valid UserDtos.UpdateUserRequest req) {
         User user = userService.update(id, req);
         return ResponseEntity.ok(toResponse(user));
@@ -63,7 +67,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(
             @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable String id) {
+            @PathVariable("id") String id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
@@ -76,7 +80,7 @@ public class UserController {
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setRole(user.getRole());
-        dto.setHourlyRate(user.getHourlyRate() != null ? user.getHourlyRate() : null);
+        dto.setHourlyRate(user.getHourlyRate());
         dto.setNotes(user.getNotes());
         return dto;
     }

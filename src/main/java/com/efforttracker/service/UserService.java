@@ -3,9 +3,10 @@ package com.efforttracker.service;
 import com.efforttracker.model.dto.UserDtos;
 import com.efforttracker.model.entity.User;
 import com.efforttracker.repository.UserRepository;
+import com.efforttracker.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,26 +14,37 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
 
-    public List<User> getAll() { return userRepository.findAll(); }
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public List<User> getAll() {
+        return userRepository.findAll();
+    }
 
     public User getById(String id) {
-        return userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy User với id = " + id));
     }
 
     public User create(UserDtos.CreateUserRequest req) {
         User u = new User();
         u.setEmail(req.getEmail());
-        u.setPassword(req.getPassword());
+
+        // mã hoá password trước khi lưu
+        u.setPassword(passwordEncoder.encode(req.getPassword()));
+
         u.setFirstName(req.getFirstName());
         u.setLastName(req.getLastName());
+
+        // chuẩn hoá role
         String role = req.getRole() != null ? req.getRole().toUpperCase() : "USER";
         if (!role.equals("USER") && !role.equals("ADMIN")) {
             role = "USER";
         }
         u.setRole(role);
+
+        // set hourlyRate
         if (req.getHourlyRate() != null) {
             try {
                 u.setHourlyRate(new BigDecimal(req.getHourlyRate()));
@@ -42,25 +54,40 @@ public class UserService {
         } else {
             u.setHourlyRate(BigDecimal.ZERO);
         }
+
         u.setNotes(req.getNotes());
         return userRepository.save(u);
     }
 
     public User update(String id, UserDtos.UpdateUserRequest req) {
         User u = getById(id);
+
         if (req.getFirstName() != null) u.setFirstName(req.getFirstName());
         if (req.getLastName() != null) u.setLastName(req.getLastName());
-        if (req.getRole() != null) u.setRole(req.getRole());
+
+        if (req.getRole() != null) {
+            String role = req.getRole().toUpperCase();
+            if (role.equals("USER") || role.equals("ADMIN")) {
+                u.setRole(role);
+            }
+        }
+
         if (req.getHourlyRate() != null) {
             try {
                 u.setHourlyRate(new BigDecimal(req.getHourlyRate()));
             } catch (NumberFormatException ex) {
-
+                u.setHourlyRate(BigDecimal.ZERO);
             }
         }
+
         if (req.getNotes() != null) u.setNotes(req.getNotes());
         return userRepository.save(u);
     }
 
-    public void delete(String id) { userRepository.deleteById(id); }
+    public void delete(String id) {
+        if (!userRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Không tìm thấy User với id = " + id);
+        }
+        userRepository.deleteById(id);
+    }
 }

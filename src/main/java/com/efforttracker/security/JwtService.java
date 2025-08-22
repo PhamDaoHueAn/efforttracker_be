@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtService {
@@ -21,16 +23,21 @@ public class JwtService {
         return secretKey.getBytes();
     }
 
-    public String generateToken(String username) {
+    // Generate token với userId + role
+    public String generateToken(String userId, String role) {
         try {
             JWSSigner signer = new MACSigner(getSecretBytes());
             Date now = new Date();
             Date exp = new Date(now.getTime() + expirationTime);
 
+            Map<String, Object> customClaims = new HashMap<>();
+            customClaims.put("role", role);
+
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .subject(username)
+                    .subject(userId)   // userId làm subject
                     .issueTime(now)
                     .expirationTime(exp)
+                    .claim("role", role) // thêm role vào claim
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(
@@ -44,19 +51,25 @@ public class JwtService {
         }
     }
 
-    public String extractUsername(String token) {
+    // Lấy userId (subject) từ token
+    public String extractUserId(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    // Lấy role từ token
+    public String extractRole(String token) {
+        return (String) extractAllClaims(token).getClaim("role");
     }
 
     public Date extractExpiration(String token) {
         return extractAllClaims(token).getExpirationTime();
     }
 
-    public boolean isTokenValid(String token, String username) {
+    public boolean isTokenValid(String token, String expectedUserId) {
         try {
             JWTClaimsSet claims = extractAllClaims(token);
             return verifyToken(token)
-                    && claims.getSubject().equals(username)
+                    && claims.getSubject().equals(expectedUserId)
                     && claims.getExpirationTime().after(new Date());
         } catch (Exception e) {
             return false;
