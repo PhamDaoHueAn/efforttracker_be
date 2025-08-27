@@ -4,6 +4,7 @@ import com.efforttracker.model.dto.AuthDtos;
 import com.efforttracker.model.dto.ApiResponse;
 import com.efforttracker.model.dto.UserDtos;
 import com.efforttracker.model.entity.User;
+import com.efforttracker.model.mapper.UserMapper;
 import com.efforttracker.service.AuthService;
 import com.efforttracker.service.UserService;
 import com.efforttracker.security.JwtService;
@@ -15,12 +16,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,34 +34,9 @@ public class AuthController {
     private final UserService userService;
     private final JwtService jwtService;
 
-    // ✅ Lấy user hiện tại (dùng cookie thay vì Authorization header)
-    @GetMapping("/user")
-    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
-        try {
-            String token = null;
 
-            if (request.getCookies() != null) {
-                token = Arrays.stream(request.getCookies())
-                        .filter(c -> "access_token".equals(c.getName()))
-                        .findFirst()
-                        .map(Cookie::getValue)
-                        .orElse(null);
-            }
 
-            if (token == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ApiResponse<>(false, "Chưa đăng nhập!", null));
-            }
 
-            String userId = jwtService.extractUserId(token);
-            User user = userService.getById(userId);
-            return ResponseEntity.ok(userService.toResponse(user));
-
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Token không hợp lệ!", null));
-        }
-    }
 
     // ✅ Đăng ký
     @PostMapping("/register")
@@ -75,7 +53,7 @@ public class AuthController {
         }
     }
 
-    // ✅ Đăng nhập + set cookie
+    // Đăng nhập + set cookie
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid AuthDtos.LoginRequest req) {
         try {

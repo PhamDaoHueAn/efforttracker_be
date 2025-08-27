@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Optional;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -32,52 +34,59 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // ✅ Bỏ qua các endpoint auth
-        String path = request.getServletPath();
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String jwt = null;
-
-        // ✅ Ưu tiên lấy từ header
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
-        }
-
-        // ✅ Nếu không có header thì fallback sang cookie
-        if (jwt == null && request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if (COOKIE_NAME.equals(cookie.getName())) {
-                    jwt = cookie.getValue();
-                    break;
-                }
+        try {
+            // ✅ Bỏ qua endpoint auth
+            String path = request.getServletPath();
+            if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
+                filterChain.doFilter(request, response);
+                return;
             }
-        }
 
-        if (jwt != null) {
-            try {
+            String jwt = null;
+
+            // ✅ Ưu tiên header Authorization
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
+            }
+
+            // ✅ Fallback cookie nếu không có header
+            if (jwt == null) {
+                jwt = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
+                        .filter(c -> COOKIE_NAME.equals(c.getName()))
+                        .map(Cookie::getValue)
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            if (jwt != null) {
+                // Giải mã token
                 String userId = jwtService.extractUserId(jwt);
-
                 if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsServiceImpl.loadUserById(userId);
 
+                    // ✅ Kiểm tra token hợp lệ
                     if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,
                                         null,
-                                        userDetails.getAuthorities()
+                                        userDetails.getAuthorities() // ROLE_USER / ROLE_ADMIN
                                 );
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
                         SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                        System.out.println("JWT Auth successful: " + userDetails.getUsername());
+                    } else {
+                        System.out.println("JWT invalid for userId: " + userId);
                     }
                 }
-            } catch (Exception ex) {
-                System.out.println("JWT filter error: " + ex.getMessage());
+            } else {
+                System.out.println("No JWT found in request");
             }
+        } catch (Exception ex) {
+            System.out.println("JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

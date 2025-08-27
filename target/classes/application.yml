@@ -22,3 +22,6 @@ app:
   jwt:
     secret: "mysecretkey1234567890mysecretkey1234567890"
     expiration: 3600000
+logging:
+  level:
+    org.springframework.security: DEBUG

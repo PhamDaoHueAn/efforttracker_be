@@ -51,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:3000")); // FE domain (React)
+        config.setAllowedOriginPatterns(List.of("http://localhost:3000", "http://localhost:8080"));// FE domain (React)
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // ✅ để cookie đi kèm
