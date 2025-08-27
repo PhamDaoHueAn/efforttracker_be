@@ -18,19 +18,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    // Ở đây dùng userId thay vì username/email
+
+
     @Override
-    public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException("Không tìm thấy user với id = " + userId));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user với email = " + email));
 
-        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole());
-
-        return new org.springframework.security.core.userdetails.User(
-                user.getId(),       // username = userId
-                user.getPassword(), // password
-                Collections.singletonList(authority) // role
-        );
+        return new UserDetailsImpl(user);
     }
+    public UserDetails loadUserById(String id) throws UsernameNotFoundException {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user với id = " + id));
+        return new UserDetailsImpl(user);
+    }
+
 }

@@ -90,4 +90,16 @@ public class UserService {
         }
         userRepository.deleteById(id);
     }
+    public UserDtos.UserResponse toResponse(User u) {
+        if (u == null) return null;
+        return new UserDtos.UserResponse(
+                u.getId(),
+                u.getEmail(),
+                u.getFirstName(),
+                u.getLastName(),
+                u.getRole(),
+                u.getHourlyRate(),
+                u.getNotes()
+        );
+    }
 }

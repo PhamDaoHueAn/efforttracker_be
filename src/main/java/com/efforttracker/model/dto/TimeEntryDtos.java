@@ -87,4 +87,23 @@ public class TimeEntryDtos {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
   }
+  public static class MonthlyStats {
+    private int month;
+    private double totalEarnings;
+
+    public MonthlyStats(int month, double totalEarnings) {
+      this.month = month;
+      this.totalEarnings = totalEarnings;
+    }
+  }
+  public static class TeamStats {
+    private String userId;
+    private double totalEarnings;
+
+    public TeamStats(String userId, double totalEarnings) {
+      this.userId = userId;
+      this.totalEarnings = totalEarnings;
+    }
+  }
+
 }

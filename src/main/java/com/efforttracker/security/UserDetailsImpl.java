@@ -5,10 +5,13 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private final User user;
 
@@ -18,8 +21,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Đảm bảo role là chữ hoa để Spring Security nhận diện đúng
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().toUpperCase()));
+        String role = (user.getRole() != null) ? user.getRole().toUpperCase() : "USER";
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
     @Override
@@ -29,7 +32,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return user.getId();
     }
 
     @Override
@@ -54,5 +57,9 @@ public class UserDetailsImpl implements UserDetails {
 
     public User getUser() {
         return this.user;
+    }
+
+    public String getId() {
+        return this.user.getId();
     }
 }

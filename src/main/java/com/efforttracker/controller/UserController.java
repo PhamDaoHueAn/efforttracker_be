@@ -2,7 +2,9 @@ package com.efforttracker.controller;
 
 import com.efforttracker.model.dto.UserDtos;
 import com.efforttracker.model.entity.User;
+import com.efforttracker.model.mapper.UserMapper;
 import com.efforttracker.service.UserService;
+import com.efforttracker.security.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,69 +21,62 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final JwtService jwtService;
 
-    // Lấy danh sách tất cả user (chỉ ADMIN mới được xem)
+    // Lấy danh sách tất cả user (chỉ ADMIN)
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDtos.UserResponse>> getAll() {
         List<UserDtos.UserResponse> list = userService.getAll()
                 .stream()
-                .map(this::toResponse)
+                .map(UserMapper::toUserResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(list);
     }
 
-    // Lấy user theo ID
-    // ADMIN có thể xem bất kỳ, USER chỉ được xem chính mình
+    // Lấy user hiện tại từ token hoặc theo ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
+    @PreAuthorize("hasRole('ADMIN') or #id == principalId")
     public ResponseEntity<UserDtos.UserResponse> getById(
-            @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable("id") String id) {
-        return ResponseEntity.ok(toResponse(userService.getById(id)));
+            @PathVariable("id") String id,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.replace("Bearer ", "");
+        String principalId = jwtService.extractUserId(token);
+
+        User user = userService.getById(id);
+        return ResponseEntity.ok(UserMapper.toUserResponse(user));
     }
 
-    // Tạo mới user (chỉ admin)
+    // Tạo mới user (chỉ ADMIN)
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDtos.UserResponse> create(
             @RequestBody @Valid UserDtos.CreateUserRequest req) {
         User user = userService.create(req);
-        return ResponseEntity.ok(toResponse(user));
+        return ResponseEntity.ok(UserMapper.toUserResponse(user));
     }
 
-    // Cập nhật user theo ID
-    // ADMIN cập nhật bất kỳ, USER chỉ được cập nhật chính mình
+    // Cập nhật user
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.name")
+    @PreAuthorize("hasRole('ADMIN') or #id == principalId")
     public ResponseEntity<UserDtos.UserResponse> update(
-            @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
             @PathVariable("id") String id,
+            @RequestHeader("Authorization") String authHeader,
             @RequestBody @Valid UserDtos.UpdateUserRequest req) {
-        User user = userService.update(id, req);
-        return ResponseEntity.ok(toResponse(user));
+
+        String token = authHeader.replace("Bearer ", "");
+        String principalId = jwtService.extractUserId(token);
+
+        User updated = userService.update(id, req);
+        return ResponseEntity.ok(UserMapper.toUserResponse(updated));
     }
 
-    // Xoá user theo ID (chỉ admin)
+    // Xoá user (chỉ ADMIN)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(
-            @Parameter(description = "User ID", example = "123e4567-e89b-12d3-a456-426614174000")
-            @PathVariable("id") String id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") String id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    // Chuyển entity sang DTO
-    private UserDtos.UserResponse toResponse(User user) {
-        UserDtos.UserResponse dto = new UserDtos.UserResponse();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setRole(user.getRole());
-        dto.setHourlyRate(user.getHourlyRate());
-        dto.setNotes(user.getNotes());
-        return dto;
     }
 }

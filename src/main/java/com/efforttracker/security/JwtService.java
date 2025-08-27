@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
 public class JwtService {
@@ -30,14 +28,12 @@ public class JwtService {
             Date now = new Date();
             Date exp = new Date(now.getTime() + expirationTime);
 
-            Map<String, Object> customClaims = new HashMap<>();
-            customClaims.put("role", role);
-
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                    .subject(userId)   // userId làm subject
+                    .subject(userId)
+                    .claim("userId", userId)
+                    .claim("role", role)
                     .issueTime(now)
                     .expirationTime(exp)
-                    .claim("role", role) // thêm role vào claim
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(
@@ -53,7 +49,11 @@ public class JwtService {
 
     // Lấy userId (subject) từ token
     public String extractUserId(String token) {
-        return extractAllClaims(token).getSubject();
+        try {
+            return extractAllClaims(token).getStringClaim("userId");
+        } catch (Exception e) {
+            return extractAllClaims(token).getSubject(); // fallback về subject
+        }
     }
 
     // Lấy role từ token
@@ -69,7 +69,7 @@ public class JwtService {
         try {
             JWTClaimsSet claims = extractAllClaims(token);
             return verifyToken(token)
-                    && claims.getSubject().equals(expectedUserId)
+                    && claims.getStringClaim("userId").equals(expectedUserId)
                     && claims.getExpirationTime().after(new Date());
         } catch (Exception e) {
             return false;
