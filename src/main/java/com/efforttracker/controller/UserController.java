@@ -4,6 +4,7 @@ import com.efforttracker.model.dto.ApiResponse;
 import com.efforttracker.model.dto.UserDtos;
 import com.efforttracker.model.entity.User;
 import com.efforttracker.model.mapper.UserMapper;
+import com.efforttracker.security.UserDetailsImpl;
 import com.efforttracker.service.UserService;
 import com.efforttracker.security.JwtService;
 import jakarta.servlet.http.Cookie;
@@ -13,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Parameter;
 
@@ -27,102 +31,101 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
-    private final JwtService jwtService;
 
-    // ✅ Lấy user hiện tại (dùng cookie thay vì Authorization header)
+    // Lấy user hiện tại
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
-        try {
-            // Lấy JWT từ cookie "access_token"
-            String token = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
-                    .filter(c -> "access_token".equals(c.getName()))
-                    .findFirst()
-                    .map(Cookie::getValue)
-                    .orElse(null);
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-            // Nếu không có token => chưa đăng nhập
-            if (token == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ApiResponse<>(false, "Chưa đăng nhập!", null));
-            }
-
-            // Giải mã JWT để lấy userId
-            String userId = jwtService.extractUserId(token);
-
-            // Truy vấn DB lấy user
-            User user = userService.getById(userId);
-            if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ApiResponse<>(false, "Không tìm thấy user!", null));
-            }
-
-            // Convert sang DTO để trả về FE
-            UserDtos.UserResponse userResponse = UserMapper.toUserResponse(user);
-
-
-            return ResponseEntity.ok(
-                    new ApiResponse<>(true, "Lấy thông tin user thành công", userResponse)
-            );
-
-        } catch (Exception e) {
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Token không hợp lệ hoặc đã hết hạn!", null));
+                    .body(new ApiResponse<>(false, "Chưa đăng nhập!", null));
         }
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userService.getById(userDetails.getId());
+        UserDtos.UserResponse userResponse = UserMapper.toUserResponse(user);
+
+        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thông tin user thành công", userResponse));
     }
 
-    // Lấy danh sách tất cả user (chỉ ADMIN)
+    // Lấy danh sách tất cả user (ADMIN)
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<UserDtos.UserResponse>> getAll() {
+    public ResponseEntity<?> getAllUsers() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!isAdmin(auth)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Không có quyền truy cập!", null));
+        }
+
         List<UserDtos.UserResponse> list = userService.getAll()
                 .stream()
                 .map(UserMapper::toUserResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy danh sách thành công", list));
     }
 
     // Lấy user theo ID
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == principalId")
-    public ResponseEntity<UserDtos.UserResponse> getById(
-            @Parameter(description = "ID của user cần lấy", example = "123")
-            @PathVariable("id") String id
+    public ResponseEntity<?> getById(@PathVariable String id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
 
-    ) {
+        if (!isAdmin(auth) && !id.equals(userDetails.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Không có quyền truy cập!", null));
+        }
 
         User user = userService.getById(id);
-        return ResponseEntity.ok(UserMapper.toUserResponse(user));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thông tin user thành công", UserMapper.toUserResponse(user)));
     }
 
-    // Tạo mới user (chỉ ADMIN)
+    // Tạo mới user (ADMIN)
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserDtos.UserResponse> create(
-            @RequestBody @Valid UserDtos.CreateUserRequest req) {
+    public ResponseEntity<?> create(@RequestBody @Valid UserDtos.CreateUserRequest req) {
+        if (!isAdmin(SecurityContextHolder.getContext().getAuthentication())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Không có quyền truy cập!", null));
+        }
         User user = userService.create(req);
-        return ResponseEntity.ok(UserMapper.toUserResponse(user));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Tạo user thành công", UserMapper.toUserResponse(user)));
     }
 
     // Cập nhật user
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == principalId")
-    public ResponseEntity<UserDtos.UserResponse> update(
-            @Parameter(description = "ID của user cần cập nhật", example = "123")
-            @PathVariable("id") String id,
-            @RequestBody @Valid UserDtos.UpdateUserRequest req) {
+    public ResponseEntity<?> update(@PathVariable String id, @RequestBody @Valid UserDtos.UpdateUserRequest req) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
 
+        if (!isAdmin(auth) && !id.equals(userDetails.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Không có quyền cập nhật!", null));
+        }
 
         User updated = userService.update(id, req);
-        return ResponseEntity.ok(UserMapper.toUserResponse(updated));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cập nhật thành công", UserMapper.toUserResponse(updated)));
     }
 
     // Xoá user
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(
-            @Parameter(description = "ID của user cần xoá", example = "123")
-            @PathVariable("id") String id) {
+    public ResponseEntity<?> delete(@PathVariable String id) {
+        if (!isAdmin(SecurityContextHolder.getContext().getAuthentication())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(false, "Không có quyền xoá!", null));
+        }
         userService.delete(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Xoá thành công", null));
+    }
+
+    // Helper kiểm tra quyền admin
+    private boolean isAdmin(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 }
+

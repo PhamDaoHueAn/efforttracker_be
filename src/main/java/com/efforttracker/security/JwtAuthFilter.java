@@ -5,7 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,13 +18,11 @@ import java.util.Arrays;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsServiceImpl;
+    private final JwtService jwtService;
+    private final UserDetailsServiceImpl userDetailsServiceImpl;
 
     private static final String COOKIE_NAME = "access_token";
 
@@ -34,59 +32,52 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        try {
-            // ✅ Bỏ qua endpoint auth
-            String path = request.getServletPath();
-            if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
+        String path = request.getServletPath();
+        // Bỏ qua các endpoint auth
+        if (path.startsWith("/api/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            String jwt = null;
+        String jwt = null;
 
-            // ✅ Ưu tiên header Authorization
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                jwt = authHeader.substring(7);
-            }
+        // Lấy từ Authorization header
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        }
 
-            // ✅ Fallback cookie nếu không có header
-            if (jwt == null) {
-                jwt = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
-                        .filter(c -> COOKIE_NAME.equals(c.getName()))
-                        .map(Cookie::getValue)
-                        .findFirst()
-                        .orElse(null);
-            }
+        // Fallback lấy từ cookie
+        if (jwt == null) {
+            jwt = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
+                    .filter(c -> COOKIE_NAME.equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+        }
 
-            if (jwt != null) {
-                // Giải mã token
+
+
+        if (jwt != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            try {
                 String userId = jwtService.extractUserId(jwt);
-                if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (userId != null) {
                     UserDetails userDetails = userDetailsServiceImpl.loadUserById(userId);
 
-                    // ✅ Kiểm tra token hợp lệ
                     if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(
                                         userDetails,
                                         null,
-                                        userDetails.getAuthorities() // ROLE_USER / ROLE_ADMIN
+                                        userDetails.getAuthorities()
                                 );
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
                         SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                        System.out.println("JWT Auth successful: " + userDetails.getUsername());
-                    } else {
-                        System.out.println("JWT invalid for userId: " + userId);
                     }
                 }
-            } else {
-                System.out.println("No JWT found in request");
+            } catch (Exception ignored) {
+                // Nếu token sai hoặc hết hạn, bỏ qua. Spring Security sẽ trả 401 tự động
             }
-        } catch (Exception ex) {
-            System.out.println("JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
