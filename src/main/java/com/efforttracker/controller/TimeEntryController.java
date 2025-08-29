@@ -1,5 +1,6 @@
 package com.efforttracker.controller;
 
+import com.efforttracker.model.dto.DailyHoursResponse;
 import com.efforttracker.model.dto.TimeEntryDtos;
 import com.efforttracker.model.dto.ApiResponse;
 import com.efforttracker.model.entity.TimeEntry;
@@ -76,9 +77,10 @@ public class TimeEntryController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy dữ liệu thành công", entries));
     }
 
+
     // Lấy entries theo userId (ADMIN có thể xem của bất kỳ ai, USER chỉ của chính mình)
     @GetMapping("/by-user/{id}")
-    public ResponseEntity<?> byUser(@PathVariable String id) {
+    public ResponseEntity<?> byUser(@Parameter(description = "Nhập id") @PathVariable String id) {
         UserDetailsImpl user = getCurrentUser();
         if (user == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -99,7 +101,9 @@ public class TimeEntryController {
     // Lấy entries trong khoảng ngày
     @GetMapping("/range/{start}/{end}")
     public ResponseEntity<?> getEntriesInRange(
+            @Parameter(description = "Ngày bắt đầu")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @Parameter(description = "Ngày kết thúc")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         UserDetailsImpl user = getCurrentUser();
@@ -113,7 +117,7 @@ public class TimeEntryController {
 
     // Xóa entry (USER hoặc ADMIN)
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEntry(@PathVariable String id) {
+    public ResponseEntity<?> deleteEntry(@Parameter(description = "Nhập id") @PathVariable String id) {
         UserDetailsImpl user = getCurrentUser();
         if (user == null)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -127,8 +131,8 @@ public class TimeEntryController {
     // Thống kê hàng tháng
     @GetMapping("/analytics/monthly-stats/{start}/{end}")
     public ResponseEntity<?> getMonthlyStats(
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+            @Parameter(description = "Ngày bắt đầu") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @Parameter(description = "Ngày kết thúc") @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         UserDetailsImpl user = getCurrentUser();
         if (user == null)
@@ -142,7 +146,9 @@ public class TimeEntryController {
     // Thống kê team (chỉ ADMIN)
     @GetMapping("/analytics/team-stats/{start}/{end}")
     public ResponseEntity<?> getTeamStats(
+            @Parameter(description = "Ngày bắt đầu")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @Parameter(description = "Ngày kết thúc")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         if (!isAdmin(SecurityContextHolder.getContext().getAuthentication()))
@@ -152,5 +158,27 @@ public class TimeEntryController {
         List<TimeEntryDtos.TeamStats> stats = timeEntryService.getTeamStats(start, end);
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thống kê team thành công", stats));
     }
+
+    // Lấy số giờ làm theo từng ngày trong tháng hiện tại
+    @GetMapping("/analytics/monthly-hours/{month}/{year}")
+    public ResponseEntity<?> getMonthlyHours(
+            @Parameter(description = "Tháng (1-12)") @PathVariable int month,
+            @Parameter(description = "Năm") @PathVariable int year
+    ) {
+        UserDetailsImpl user = getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Chưa đăng nhập!", null));
+        }
+
+        List<DailyHoursResponse> dailyHours =
+                timeEntryService.getMonthlyHours(user.getId(), month, year);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Lấy thống kê giờ làm theo tháng thành công!", dailyHours)
+        );
+    }
+
+
 }
 

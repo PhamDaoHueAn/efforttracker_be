@@ -1,6 +1,7 @@
 package com.efforttracker.model.dto;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -14,10 +15,12 @@ public class UserDtos {
     private String role;
     private BigDecimal hourlyRate;
     private String notes;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
     public UserResponse() {}
 
-    public UserResponse(String id, String email, String firstName, String lastName, String role, BigDecimal hourlyRate, String notes) {
+    public UserResponse(String id, String email, String firstName, String lastName, String role, BigDecimal hourlyRate, String notes, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
       this.id = id;
       this.email = email;
       this.firstName = firstName;
@@ -25,6 +28,8 @@ public class UserDtos {
       this.role = role;
       this.hourlyRate = hourlyRate;
       this.notes = notes;
+      this.createdAt = createdAt;
+      this.updatedAt = updatedAt;
     }
 
     public String getId() { return id; }
@@ -47,6 +52,12 @@ public class UserDtos {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
   }
 
   public static class CreateUserRequest {

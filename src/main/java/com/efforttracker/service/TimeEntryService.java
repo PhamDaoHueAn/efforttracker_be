@@ -1,6 +1,7 @@
 package com.efforttracker.service;
 
 import com.efforttracker.exception.ResourceNotFoundException;
+import com.efforttracker.model.dto.DailyHoursResponse;
 import com.efforttracker.model.dto.TimeEntryDtos;
 import com.efforttracker.model.entity.TimeEntry;
 import com.efforttracker.model.entity.User;
@@ -87,6 +88,11 @@ public class TimeEntryService {
                 .map(e -> new TimeEntryDtos.TeamStats(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
     }
+
+    public List<DailyHoursResponse> getMonthlyHours(String userId, int month, int year) {
+        return timeEntryRepository.findDailyHoursByUserAndMonth(userId, month, year);
+    }
+
     public TimeEntryDtos.TimeEntryResponse toResponse(TimeEntry e) {
         if (e == null) return null;
 

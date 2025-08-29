@@ -99,7 +99,9 @@ public class UserService {
                 u.getLastName(),
                 u.getRole(),
                 u.getHourlyRate(),
-                u.getNotes()
+                u.getNotes(),
+                u.getCreatedAt(),
+                u.getUpdatedAt()
         );
     }
 }

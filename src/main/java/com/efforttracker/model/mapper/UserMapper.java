@@ -15,7 +15,9 @@ public class UserMapper {
             user.getLastName(),
             user.getRole(),
             user.getHourlyRate(),
-            user.getNotes()
+            user.getNotes(),
+            user.getCreatedAt(),
+            user.getUpdatedAt()
         );
     }
 }

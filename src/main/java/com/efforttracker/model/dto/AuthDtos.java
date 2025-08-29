@@ -3,6 +3,8 @@ package com.efforttracker.model.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+import java.math.BigDecimal;
+
 public class AuthDtos {
   public static class LoginRequest {
     @Email
@@ -85,6 +87,10 @@ public class AuthDtos {
     private String firstName;
     @NotBlank
     private String lastName;
+    @NotBlank
+    private BigDecimal hourlyRate;
+    @NotBlank
+    private String notes;
 
     public String getRole() {
       return role;
@@ -127,6 +133,22 @@ public class AuthDtos {
 
     public void setLastName(String lastName) {
       this.lastName = lastName;
+    }
+
+    public BigDecimal getHourlyRate() {
+      return hourlyRate;
+    }
+
+    public void setHourlyRate(BigDecimal hourlyRate) {
+      this.hourlyRate = hourlyRate;
+    }
+
+    public String getNotes() {
+      return notes;
+    }
+
+    public void setNotes(String notes) {
+      this.notes = notes;
     }
   }
 }

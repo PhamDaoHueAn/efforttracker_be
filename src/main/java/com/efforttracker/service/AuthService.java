@@ -34,7 +34,8 @@ public class AuthService {
                 .firstName(req.getFirstName())
                 .lastName(req.getLastName())
                 .role(role)
-                .hourlyRate(BigDecimal.ZERO)
+                .hourlyRate(req.getHourlyRate())
+                .notes(req.getNotes())
                 .build();
 
         userRepository.save(user);
