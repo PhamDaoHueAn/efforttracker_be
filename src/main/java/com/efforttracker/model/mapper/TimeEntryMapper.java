@@ -13,9 +13,9 @@ public class TimeEntryMapper {
         dto.setId(entry.getId());
         dto.setUserId(entry.getUser() != null ? entry.getUser().getId() : null);
         dto.setDate(entry.getDate());
-        dto.setHours(entry.getHours() != null ? entry.getHours().doubleValue() : null);
+        dto.setHours(entry.getHours());
         dto.setDescription(entry.getDescription());
-        dto.setEarnings(entry.getEarnings() != null ? entry.getEarnings().doubleValue() : null);
+        dto.setEarnings(entry.getEarnings());
         dto.setCreatedAt(entry.getCreatedAt());
         dto.setUpdatedAt(entry.getUpdatedAt());
         return dto;
@@ -26,7 +26,7 @@ public class TimeEntryMapper {
         TimeEntry entry = new TimeEntry();
         entry.setUser(user);
         entry.setDate(dto.getDate());
-        entry.setHours(dto.getHours() != null ? BigDecimal.valueOf(dto.getHours()) : null);
+        entry.setHours(dto.getHours());
         entry.setDescription(dto.getDescription());
         // earnings có thể tính toán hoặc set mặc định
         entry.setEarnings(BigDecimal.ZERO);

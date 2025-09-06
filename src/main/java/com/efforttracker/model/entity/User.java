@@ -7,7 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
 @Table(name = "users")
 public class User {
@@ -19,7 +20,7 @@ public class User {
           strategy = "org.hibernate.id.UUIDGenerator"
   )
   @Column(name = "id", updatable = false, nullable = false)
-  private String id; // UUID tự generate
+  private String id;
 
   @Column(nullable = false, unique = true)
   private String email;
@@ -49,4 +50,7 @@ public class User {
   @UpdateTimestamp
   @Column(name = "updated_at")
   private OffsetDateTime updatedAt;
+
+  @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  private java.util.List<TimeEntry> timeEntries = new java.util.ArrayList<>();
 }

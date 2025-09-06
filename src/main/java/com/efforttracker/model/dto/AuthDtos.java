@@ -2,6 +2,7 @@ package com.efforttracker.model.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
@@ -87,7 +88,7 @@ public class AuthDtos {
     private String firstName;
     @NotBlank
     private String lastName;
-    @NotBlank
+    @NotNull
     private BigDecimal hourlyRate;
     @NotBlank
     private String notes;

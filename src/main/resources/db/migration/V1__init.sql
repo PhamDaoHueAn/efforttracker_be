@@ -12,10 +12,23 @@ create table if not exists users (
   updated_at timestamptz default now()
 );
 
+-- Tasks
+create table if not exists tasks (
+  id varchar(36) primary key default gen_random_uuid(),
+  name varchar(255) not null,
+  description text,
+  status varchar(50) default 'open', -- open, in_progress, done, cancelled
+  start_date date,
+  due_date date,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Time Entries
 create table if not exists time_entries (
   id varchar(36) primary key default gen_random_uuid(),
   user_id varchar(36) not null references users(id) on delete cascade,
+  task_id varchar(36) references tasks(id) on delete set null,
   date date not null,
   hours numeric(5,2) not null,
   description text not null,
@@ -25,6 +38,7 @@ create table if not exists time_entries (
 );
 
 create index if not exists idx_time_entries_user_date on time_entries(user_id, date);
+create index if not exists idx_time_entries_task on time_entries(task_id);
 
 -- Seed admin (email unique -> insert if not exists)
 insert into users(id, email, password, first_name, last_name, role)

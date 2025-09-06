@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class UserDtos {
   public static class UserResponse {
@@ -68,8 +69,9 @@ public class UserDtos {
     private String firstName;
     private String lastName;
     private String role;
-    private String hourlyRate;
     private String notes;
+    @NotNull
+    private BigDecimal hourlyRate;
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
@@ -86,8 +88,8 @@ public class UserDtos {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    public String getHourlyRate() { return hourlyRate; }
-    public void setHourlyRate(String hourlyRate) { this.hourlyRate = hourlyRate; }
+    public BigDecimal getHourlyRate() { return hourlyRate; }
+    public void setHourlyRate(BigDecimal hourlyRate) { this.hourlyRate = hourlyRate; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
@@ -97,7 +99,7 @@ public class UserDtos {
     private String firstName;
     private String lastName;
     private String role;
-    private String hourlyRate;
+    private BigDecimal hourlyRate;
     private String notes;
 
     public String getFirstName() { return firstName; }
@@ -109,8 +111,8 @@ public class UserDtos {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    public String getHourlyRate() { return hourlyRate; }
-    public void setHourlyRate(String hourlyRate) { this.hourlyRate = hourlyRate; }
+    public BigDecimal getHourlyRate() { return hourlyRate; }
+    public void setHourlyRate(BigDecimal hourlyRate) { this.hourlyRate = hourlyRate; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

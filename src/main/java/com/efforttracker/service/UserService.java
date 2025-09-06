@@ -47,7 +47,7 @@ public class UserService {
         // set hourlyRate
         if (req.getHourlyRate() != null) {
             try {
-                u.setHourlyRate(new BigDecimal(req.getHourlyRate()));
+                u.setHourlyRate(req.getHourlyRate());
             } catch (NumberFormatException ex) {
                 u.setHourlyRate(BigDecimal.ZERO);
             }
@@ -74,7 +74,7 @@ public class UserService {
 
         if (req.getHourlyRate() != null) {
             try {
-                u.setHourlyRate(new BigDecimal(req.getHourlyRate()));
+                u.setHourlyRate(req.getHourlyRate());
             } catch (NumberFormatException ex) {
                 u.setHourlyRate(BigDecimal.ZERO);
             }

@@ -30,9 +30,15 @@ public class TimeEntry {
     }
   }
 
+  // Quan hệ với User
   @ManyToOne(optional = false, fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
+
+  // Quan hệ với Task (có thể null vì on delete set null)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "task_id")
+  private Task task;
 
   @Column(name = "date", nullable = false)
   private LocalDate date;
@@ -40,11 +46,11 @@ public class TimeEntry {
   @Column(name = "hours", nullable = false, precision = 5, scale = 2)
   private BigDecimal hours;
 
-  @Column(name = "description", nullable = false)
+  @Column(name = "description", nullable = false, columnDefinition = "text")
   private String description;
 
   @Column(name = "earnings", nullable = false, precision = 10, scale = 2)
-  private BigDecimal earnings;
+  private BigDecimal earnings = BigDecimal.ZERO;
 
   @CreationTimestamp
   @Column(name = "created_at", updatable = false)
